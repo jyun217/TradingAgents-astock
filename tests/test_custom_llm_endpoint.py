@@ -81,9 +81,6 @@ class TestBuildLlmKwargs(unittest.TestCase):
         self.assertEqual(build_llm_kwargs(cfg2).get("reasoning_effort"), "low")
 
 
-from unittest.mock import MagicMock
-
-
 @pytest.mark.unit
 class TestCliCustomModelAndKey(unittest.TestCase):
     @patch("cli.utils._prompt_custom_model_id", return_value="claude-custom")
