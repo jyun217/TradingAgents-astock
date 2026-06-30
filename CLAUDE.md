@@ -62,6 +62,15 @@ openai / anthropic 可经第三方网关接入：base_url 优先级为 显式输
 ## Issue 归档
 所有 GitHub Issue 的详细记录在 `issues/` 文件夹中，包含问题描述、根因分析、修复方案和当前状态。
 
+## 分析数据持久化（analysis_data/）
+分析结果与 Agent 记忆存入仓库内 `analysis_data/`，纳入 git 以便换机器复用：
+- `analysis_data/logs/<代码>/TradingAgentsStrategy_logs/full_states_log_<日期>.json` — 每次分析的完整状态（7 个分析师报告 + 多空/风险辩论 + 最终决策）。**同票同日重跑会覆盖**。
+- `analysis_data/memory/trading_memory.md` — 跨次累积的交易记忆。
+- 由 `.env`（及模板 `.env.example`）的 `TRADINGAGENTS_RESULTS_DIR=analysis_data/logs`、`TRADINGAGENTS_MEMORY_LOG_PATH=analysis_data/memory/trading_memory.md` 指向；路径为**相对路径**，必须**从仓库根目录启动**服务（CWD=仓库根）才能正确落盘。
+- **缓存有意不入仓库**：K线 CSV / `northbound_daily.csv` / LangGraph 断点库 `checkpoints/*.db` 仍在 `~/.tradingagents/cache`（可再生、体积大）。`.gitignore` 额外拦截 `analysis_data/` 下的 `*.db`/`*.csv`/`cache/`。
+- 默认值（未设环境变量时）仍是 `~/.tradingagents/{logs,cache,memory}`（见 `tradingagents/default_config.py`）。
+- `.env` 含密钥不入 git，换机器需照 `.env.example` 重建（路径两行已在模板中）。
+
 ## 开发规范
 - 改动前先跑 `python -m pytest tests/ -v` 确保不破坏现有测试
 - `safe_ticker_component` 是安全边界，任何绕过路径校验的改动必须慎重评估
