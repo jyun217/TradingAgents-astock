@@ -54,3 +54,28 @@ class TestOpenAIResponsesApiGating(unittest.TestCase):
         client.get_llm()
         call_kwargs = mock_chat.call_args[1]
         self.assertTrue(call_kwargs.get("use_responses_api"))
+
+
+from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.graph.trading_graph import build_llm_kwargs
+
+
+@pytest.mark.unit
+class TestBuildLlmKwargs(unittest.TestCase):
+    def test_default_config_has_llm_api_key(self):
+        self.assertIn("llm_api_key", DEFAULT_CONFIG)
+        self.assertIsNone(DEFAULT_CONFIG["llm_api_key"])
+
+    def test_api_key_injected_when_set(self):
+        cfg = {"llm_provider": "openai", "llm_api_key": "sk-custom"}
+        self.assertEqual(build_llm_kwargs(cfg).get("api_key"), "sk-custom")
+
+    def test_api_key_absent_when_empty(self):
+        cfg = {"llm_provider": "openai", "llm_api_key": None}
+        self.assertNotIn("api_key", build_llm_kwargs(cfg))
+
+    def test_provider_effort_preserved(self):
+        cfg = {"llm_provider": "anthropic", "anthropic_effort": "high"}
+        self.assertEqual(build_llm_kwargs(cfg).get("effort"), "high")
+        cfg2 = {"llm_provider": "openai", "openai_reasoning_effort": "low"}
+        self.assertEqual(build_llm_kwargs(cfg2).get("reasoning_effort"), "low")
