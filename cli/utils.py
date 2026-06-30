@@ -208,7 +208,7 @@ def _select_model(provider: str, mode: str) -> str:
         choices=[
             questionary.Choice(display, value=value)
             for display, value in get_model_options(provider, mode)
-        ],
+        ] + [questionary.Choice("Custom model ID", value="custom")],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
             [
@@ -239,26 +239,25 @@ def select_deep_thinking_agent(provider) -> str:
     return _select_model(provider, "deep")
 
 def select_llm_provider() -> tuple[str, str | None]:
-    """Select the LLM provider and its API endpoint."""
-    # (display_name, provider_key, base_url)
+    """Select the LLM provider, optionally with a custom/gateway base URL."""
     PROVIDERS = [
-        ("OpenAI", "openai", "https://api.openai.com/v1"),
-        ("Google", "google", None),
-        ("Anthropic", "anthropic", "https://api.anthropic.com/"),
-        ("xAI", "xai", "https://api.x.ai/v1"),
-        ("DeepSeek", "deepseek", "https://api.deepseek.com"),
-        ("Qwen", "qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-        ("GLM", "glm", "https://open.bigmodel.cn/api/paas/v4/"),
-        ("OpenRouter", "openrouter", "https://openrouter.ai/api/v1"),
-        ("Azure OpenAI", "azure", None),
-        ("Ollama", "ollama", "http://localhost:11434/v1"),
+        ("OpenAI", "openai"),
+        ("Google", "google"),
+        ("Anthropic", "anthropic"),
+        ("xAI", "xai"),
+        ("DeepSeek", "deepseek"),
+        ("Qwen", "qwen"),
+        ("GLM", "glm"),
+        ("OpenRouter", "openrouter"),
+        ("Azure OpenAI", "azure"),
+        ("Ollama", "ollama"),
     ]
 
     choice = questionary.select(
         "Select your LLM Provider:",
         choices=[
-            questionary.Choice(display, value=(provider_key, url))
-            for display, provider_key, url in PROVIDERS
+            questionary.Choice(display, value=provider_key)
+            for display, provider_key in PROVIDERS
         ],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
@@ -269,13 +268,24 @@ def select_llm_provider() -> tuple[str, str | None]:
             ]
         ),
     ).ask()
-    
+
     if choice is None:
         console.print("\n[red]No LLM provider selected. Exiting...[/red]")
         exit(1)
 
-    provider, url = choice
-    return provider, url
+    use_custom = questionary.confirm(
+        "Use a custom / proxy base URL (third-party gateway)?",
+        default=False,
+    ).ask()
+
+    base_url = None
+    if use_custom:
+        base_url = questionary.text(
+            "Enter base URL (e.g. https://your-gateway.com/v1):",
+            validate=lambda x: len(x.strip()) > 0 or "Please enter a URL.",
+        ).ask().strip()
+
+    return choice, base_url
 
 
 def ask_openai_reasoning_effort() -> str:
@@ -294,6 +304,18 @@ def ask_openai_reasoning_effort() -> str:
             ("pointer", "fg:cyan noinherit"),
         ]),
     ).ask()
+
+
+def ask_llm_api_key() -> str | None:
+    """Optionally enter an API key for the selected provider (custom gateway).
+
+    Empty input keeps the .env / environment-variable behaviour.
+    """
+    val = questionary.password(
+        "Enter API Key (optional; leave blank to use .env):",
+    ).ask()
+    val = (val or "").strip()
+    return val or None
 
 
 def ask_anthropic_effort() -> str | None:

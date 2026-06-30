@@ -79,3 +79,28 @@ class TestBuildLlmKwargs(unittest.TestCase):
         self.assertEqual(build_llm_kwargs(cfg).get("effort"), "high")
         cfg2 = {"llm_provider": "openai", "openai_reasoning_effort": "low"}
         self.assertEqual(build_llm_kwargs(cfg2).get("reasoning_effort"), "low")
+
+
+from unittest.mock import MagicMock
+
+
+@pytest.mark.unit
+class TestCliCustomModelAndKey(unittest.TestCase):
+    @patch("cli.utils._prompt_custom_model_id", return_value="claude-custom")
+    @patch("cli.utils.questionary")
+    def test_select_model_custom_branch(self, mock_q, mock_prompt):
+        mock_q.select.return_value.ask.return_value = "custom"
+        from cli.utils import _select_model
+        self.assertEqual(_select_model("anthropic", "deep"), "claude-custom")
+
+    @patch("cli.utils.questionary")
+    def test_ask_llm_api_key_blank_returns_none(self, mock_q):
+        mock_q.password.return_value.ask.return_value = "   "
+        from cli.utils import ask_llm_api_key
+        self.assertIsNone(ask_llm_api_key())
+
+    @patch("cli.utils.questionary")
+    def test_ask_llm_api_key_value(self, mock_q):
+        mock_q.password.return_value.ask.return_value = "sk-x"
+        from cli.utils import ask_llm_api_key
+        self.assertEqual(ask_llm_api_key(), "sk-x")
