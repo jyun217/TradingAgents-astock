@@ -18,7 +18,10 @@ _INCOMPLETE_TASKS_LOCK = threading.Lock()
 
 
 def _results_dir() -> Path:
-    return Path.home() / ".tradingagents" / "logs"
+    # Honor the configured results_dir (TRADINGAGENTS_RESULTS_DIR), so the
+    # history view reads from the same place runs are written — including a
+    # repo-local analysis_data/logs. Falls back to the home default when unset.
+    return Path(DEFAULT_CONFIG["results_dir"])
 
 
 def get_history() -> list[dict[str, str]]:

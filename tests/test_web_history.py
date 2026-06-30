@@ -8,6 +8,29 @@ import threading
 from web import history
 
 
+def test_results_dir_honors_configured_results_dir(tmp_path, monkeypatch):
+    """_results_dir reads DEFAULT_CONFIG['results_dir'] (e.g. analysis_data/logs)."""
+    monkeypatch.setitem(history.DEFAULT_CONFIG, "results_dir", str(tmp_path / "analysis_data" / "logs"))
+    assert history._results_dir() == tmp_path / "analysis_data" / "logs"
+
+
+def test_get_history_scans_configured_dir(tmp_path, monkeypatch):
+    """get_history finds logs under the configured results_dir, not the home default."""
+    logs = tmp_path / "analysis_data" / "logs"
+    log_dir = logs / "688234" / "TradingAgentsStrategy_logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "full_states_log_2026-06-30.json").write_text(
+        json.dumps({"final_trade_decision": "BUY"}), encoding="utf-8"
+    )
+    monkeypatch.setitem(history.DEFAULT_CONFIG, "results_dir", str(logs))
+
+    entries = history.get_history()
+
+    assert entries == [
+        {"ticker": "688234", "date": "2026-06-30", "path": str(log_dir / "full_states_log_2026-06-30.json")}
+    ]
+
+
 def test_incomplete_task_round_trip(tmp_path, monkeypatch):
     index = tmp_path / "incomplete_tasks.json"
     logs = tmp_path / "logs"
