@@ -22,7 +22,7 @@ from tradingagents.default_config import DEFAULT_CONFIG  # noqa: E402
 from web.components.progress_panel import render_progress  # noqa: E402
 from web.components.report_viewer import render_report  # noqa: E402
 from web.components.sidebar import render_sidebar  # noqa: E402
-from web.history import clear_incomplete_task, extract_signal, load_analysis  # noqa: E402
+from web.history import clear_incomplete_task, extract_rating, load_analysis  # noqa: E402
 from web.progress import ProgressTracker  # noqa: E402
 from web.runner import run_analysis_in_thread  # noqa: E402
 
@@ -223,7 +223,7 @@ viewing_history: str | None = st.session_state.get("viewing_history")
 if viewing_history:
     try:
         state = load_analysis(viewing_history)
-        signal = extract_signal(state)
+        signal = extract_rating(state)
         ticker = Path(viewing_history).parent.parent.name
         trade_date = Path(viewing_history).stem.replace("full_states_log_", "")
         render_report(state, ticker, trade_date, signal)

@@ -204,3 +204,20 @@ def extract_signal(state: dict[str, Any]) -> str:
             if keyword in cleaned.upper():
                 return keyword.capitalize()
     return "N/A"
+
+
+def extract_rating(state: dict[str, Any]) -> str:
+    """Authoritative 5-tier rating (Buy/Overweight/Hold/Underweight/Sell).
+
+    Reads the Portfolio Manager's ``**Rating**`` from final_trade_decision via
+    the same deterministic parser the live run uses (graph.process_signal), so
+    a report viewed from history shows the SAME signal it showed live — instead
+    of the coarse 3-tier extract_signal which collapses Underweight into Sell.
+    Falls back to the 3-tier signal only when no final decision text exists.
+    """
+    from tradingagents.agents.utils.rating import parse_rating
+
+    text = state.get("final_trade_decision", "") or ""
+    if text.strip():
+        return parse_rating(text)
+    return extract_signal(state)

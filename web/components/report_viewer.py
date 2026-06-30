@@ -16,7 +16,16 @@ def _strip_think(text: str) -> str:
 
 
 def _signal_style(signal: str) -> tuple[str, str]:
-    s = signal.upper()
+    """Map a 5-tier rating (Buy/Overweight/Hold/Underweight/Sell) to (color, 中文).
+
+    OVERWEIGHT/UNDERWEIGHT are checked before the bare BUY/SELL fallback so the
+    full 5-tier scale renders distinctly; unknown values default to 持有.
+    """
+    s = (signal or "").upper()
+    if "OVERWEIGHT" in s:
+        return "#4ade80", "增持"
+    if "UNDERWEIGHT" in s:
+        return "#fb923c", "减持"
     if "BUY" in s:
         return "#22c55e", "买入"
     if "SELL" in s:
@@ -74,6 +83,9 @@ def render_report(
         ">
             <div style="font-size:0.9rem; color:#888; letter-spacing:2px;">TRADING SIGNAL</div>
             <div style="font-size:3.5rem; font-weight:900; color:{color}; margin:0.3rem 0;">
+                {cn_signal}
+            </div>
+            <div style="font-size:1rem; color:{color}; letter-spacing:1px; margin-top:-0.3rem;">
                 {signal.upper()}
             </div>
             <div style="font-size:1.2rem; color:#f5f1eb;">

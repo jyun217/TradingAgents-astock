@@ -304,6 +304,10 @@ def _format_table_cells(cells: list[str]) -> str:
 
 def _signal_color(signal: str) -> tuple[int, int, int]:
     s = signal.upper()
+    if "OVERWEIGHT" in s:
+        return (74, 222, 128)
+    if "UNDERWEIGHT" in s:
+        return (251, 146, 60)
     if "BUY" in s:
         return (34, 197, 94)
     if "SELL" in s:

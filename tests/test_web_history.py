@@ -31,6 +31,28 @@ def test_get_history_scans_configured_dir(tmp_path, monkeypatch):
     ]
 
 
+def test_extract_rating_reads_5_tier_from_final_decision():
+    assert history.extract_rating({"final_trade_decision": "**Rating**: Underweight\n减持"}) == "Underweight"
+    assert history.extract_rating({"final_trade_decision": "**Rating**: Sell"}) == "Sell"
+    assert history.extract_rating({"final_trade_decision": "**Rating**: Overweight"}) == "Overweight"
+
+
+def test_extract_rating_falls_back_to_signal_when_no_decision():
+    # No final_trade_decision text → fall back to 3-tier extract_signal
+    assert history.extract_rating({"investment_plan": "we should BUY"}) == "Buy"
+    assert history.extract_rating({}) == "N/A"
+
+
+def test_signal_style_maps_full_5_tier():
+    from web.components.report_viewer import _signal_style
+
+    assert _signal_style("Buy") == ("#22c55e", "买入")
+    assert _signal_style("Overweight") == ("#4ade80", "增持")
+    assert _signal_style("Hold") == ("#fbbf24", "持有")
+    assert _signal_style("Underweight") == ("#fb923c", "减持")
+    assert _signal_style("Sell") == ("#ef4444", "卖出")
+
+
 def test_incomplete_task_round_trip(tmp_path, monkeypatch):
     index = tmp_path / "incomplete_tasks.json"
     logs = tmp_path / "logs"
