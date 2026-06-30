@@ -331,23 +331,42 @@ def render_sidebar() -> None:
         st.caption("暂无历史记录")
         return
 
-    col_search, col_clear = st.columns([5, 1])
-    with col_search:
+    search_box = st.container(key="hist_search_box")
+    with search_box:
         query = (st.text_input(
             "搜索历史",
             key="history_search",
             placeholder="按代码或名字过滤，如 688234 或 天岳",
             label_visibility="collapsed",
         ) or "").strip().lower()
-    with col_clear:
-        st.button(
-            "✕",
-            key="clear_history_search",
-            on_click=_clear_history_search,
-            disabled=not st.session_state.get("history_search"),
-            use_container_width=True,
-            help="清空搜索",
-        )
+        # ✕ only renders when there's text; CSS overlays it inside the input.
+        if st.session_state.get("history_search"):
+            st.button(
+                "✕",
+                key="clear_history_search",
+                on_click=_clear_history_search,
+                help="清空搜索",
+            )
+    st.markdown(
+        """
+        <style>
+        .st-key-hist_search_box { position: relative; }
+        /* leave room on the right so text doesn't slide under the ✕ */
+        .st-key-hist_search_box [data-testid="stTextInput"] input { padding-right: 2.2rem; }
+        /* overlay the clear button inside the input, vertically centered */
+        .st-key-hist_search_box .st-key-clear_history_search {
+            position: absolute; top: 0; right: 0.35rem; height: 100%;
+            display: flex; align-items: center; z-index: 5;
+        }
+        .st-key-hist_search_box .st-key-clear_history_search button {
+            min-height: 1.5rem; height: 1.5rem; width: 1.5rem; padding: 0;
+            border: none; background: transparent; color: #888; line-height: 1;
+        }
+        .st-key-hist_search_box .st-key-clear_history_search button:hover { color: #ff5a1f; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if query:
         matched = [
