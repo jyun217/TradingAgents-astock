@@ -15,6 +15,19 @@ def test_generate_markdown_uses_display_label(monkeypatch):
     assert "600602 云赛智联 技术面分析报告" in markdown
 
 
+def test_stock_name_code_label_formats_name_code(monkeypatch):
+    monkeypatch.setattr(stock_display, "resolve_stock_name", lambda ticker: "宁德时代")
+
+    assert stock_display.stock_name_code_label("300750") == "宁德时代（300750）"
+    assert stock_display.stock_name_code_label("SZ300750") == "宁德时代（300750）"
+
+
+def test_stock_name_code_label_falls_back_to_code(monkeypatch):
+    monkeypatch.setattr(stock_display, "resolve_stock_name", lambda ticker: None)
+
+    assert stock_display.stock_name_code_label("300750") == "300750"
+
+
 def test_stock_display_label_resolves_code_to_name(monkeypatch):
     monkeypatch.setattr(stock_display, "resolve_stock_name", lambda ticker: "退市博元")
 

@@ -183,6 +183,17 @@ def stock_display_parts(ticker: str, final_state: dict | None = None) -> tuple[s
     return code, label.removeprefix(code).strip() or None
 
 
+def stock_name_code_label(ticker: str) -> str:
+    """Format a ticker as '名字（代码）', falling back to the bare code when the name is unknown."""
+    code = _resolve_display_code(ticker)
+    name = resolve_stock_name(code)
+    if name:
+        name = _clean_stock_name(name)
+    if name and name != code:
+        return f"{name}（{code}）"
+    return code
+
+
 def normalize_stock_mentions(text: str, ticker: str, final_state: dict | None = None) -> str:
     """Render code/name mentions in report text as the unified 'code name' label."""
     if not text:

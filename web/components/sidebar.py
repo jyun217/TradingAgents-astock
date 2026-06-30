@@ -15,6 +15,7 @@ from web.history import (
     get_incomplete_history,
     record_incomplete_task,
 )
+from web.stock_display import stock_name_code_label
 
 # Provider display names in recommended order
 _PROVIDERS: list[tuple[str, str]] = [
@@ -294,7 +295,7 @@ def render_sidebar() -> None:
             }.get(entry.get("status"), "可继续")
             step = entry.get("checkpoint_step")
             step_label = f" · step {step}" if step is not None else ""
-            label = f"{t}  ·  {d}  ·  {status_label}{step_label}"
+            label = f"{stock_name_code_label(t)}  ·  {d}  ·  {status_label}{step_label}"
             if st.button(
                 label,
                 key=f"resume_{t}_{d}",
@@ -317,7 +318,7 @@ def render_sidebar() -> None:
 
     for entry in history[:20]:
         t, d = entry["ticker"], entry["date"]
-        label = f"{t}  ·  {d}"
+        label = f"{stock_name_code_label(t)}  ·  {d}"
         if st.button(label, key=f"hist_{t}_{d}", use_container_width=True):
             st.session_state["viewing_history"] = entry["path"]
             st.session_state["start_analysis"] = None
