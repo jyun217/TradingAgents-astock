@@ -55,6 +55,12 @@ def _clear_analysis_artifacts(ticker: str, trade_date: str) -> None:
     clear_checkpoint(DEFAULT_CONFIG["data_cache_dir"], ticker, trade_date)
 
 
+def _clear_history_search() -> None:
+    # Runs as an on_click callback (before widgets re-instantiate), so clearing
+    # the bound key here is safe — unlike assigning to it after the text_input.
+    st.session_state["history_search"] = ""
+
+
 def _render_history_entry(entry: dict) -> None:
     """Render one clickable history record button ('名字（代码） · 日期')."""
     t, d = entry["ticker"], entry["date"]
@@ -325,12 +331,23 @@ def render_sidebar() -> None:
         st.caption("暂无历史记录")
         return
 
-    query = (st.text_input(
-        "搜索历史",
-        key="history_search",
-        placeholder="按代码或名字过滤，如 688234 或 天岳",
-        label_visibility="collapsed",
-    ) or "").strip().lower()
+    col_search, col_clear = st.columns([5, 1])
+    with col_search:
+        query = (st.text_input(
+            "搜索历史",
+            key="history_search",
+            placeholder="按代码或名字过滤，如 688234 或 天岳",
+            label_visibility="collapsed",
+        ) or "").strip().lower()
+    with col_clear:
+        st.button(
+            "✕",
+            key="clear_history_search",
+            on_click=_clear_history_search,
+            disabled=not st.session_state.get("history_search"),
+            use_container_width=True,
+            help="清空搜索",
+        )
 
     if query:
         matched = [
