@@ -164,6 +164,7 @@ def _build_config() -> dict:
     # Optional third-party / proxy endpoint. Sidebar input wins, else .env BACKEND_URL.
     backend_url = (st.session_state.get("llm_base_url") or os.getenv("BACKEND_URL") or "").strip()
     config["backend_url"] = backend_url or None
+    config["llm_api_key"] = (st.session_state.get("llm_api_key") or "").strip() or None
     config["data_vendors"] = {
         "core_stock_apis": "a_stock",
         "technical_indicators": "a_stock",

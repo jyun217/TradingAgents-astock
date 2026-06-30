@@ -143,9 +143,10 @@ def _render_llm_config() -> None:
     provider_key = _PROVIDER_KEYS[provider_idx]
     st.session_state["llm_provider"] = provider_key
 
+    _CUSTOM = "__custom__"
     if provider_key in MODEL_OPTIONS:
-        quick_options = MODEL_OPTIONS[provider_key]["quick"]
-        deep_options = MODEL_OPTIONS[provider_key]["deep"]
+        quick_options = list(MODEL_OPTIONS[provider_key]["quick"]) + [("✏️ 自定义模型 ID", _CUSTOM)]
+        deep_options = list(MODEL_OPTIONS[provider_key]["deep"]) + [("✏️ 自定义模型 ID", _CUSTOM)]
 
         quick_labels = [label for label, _ in quick_options]
         quick_values = [value for _, value in quick_options]
@@ -157,18 +158,30 @@ def _render_llm_config() -> None:
             range(len(quick_options)),
             format_func=lambda i: quick_labels[i],
             key="quick_model_idx",
-            help="用于常规分析任务，速度优先",
+            help="用于常规分析任务，速度优先；选「自定义模型 ID」可填写网关上的模型名",
         )
-        st.session_state["quick_think_llm"] = quick_values[quick_idx]
+        if quick_values[quick_idx] == _CUSTOM:
+            st.session_state["quick_think_llm"] = st.text_input(
+                "快速思考模型 ID", key="custom_quick_model",
+                placeholder="例: claude-3-5-sonnet-20241022 或 gpt-4o",
+            ).strip()
+        else:
+            st.session_state["quick_think_llm"] = quick_values[quick_idx]
 
         deep_idx = st.selectbox(
             "深度思考模型",
             range(len(deep_options)),
             format_func=lambda i: deep_labels[i],
             key="deep_model_idx",
-            help="用于辩论/决策等需要深度推理的任务",
+            help="用于辩论/决策等需要深度推理的任务；选「自定义模型 ID」可填写网关上的模型名",
         )
-        st.session_state["deep_think_llm"] = deep_values[deep_idx]
+        if deep_values[deep_idx] == _CUSTOM:
+            st.session_state["deep_think_llm"] = st.text_input(
+                "深度思考模型 ID", key="custom_deep_model",
+                placeholder="例: claude-3-5-sonnet-20241022 或 gpt-4o",
+            ).strip()
+        else:
+            st.session_state["deep_think_llm"] = deep_values[deep_idx]
     else:
         custom_quick = st.text_input("快速思考模型 ID", key="custom_quick_model")
         custom_deep = st.text_input("深度思考模型 ID", key="custom_deep_model")
@@ -187,6 +200,18 @@ def _render_llm_config() -> None:
             "通义=DASHSCOPE_API_KEY、智谱=ZHIPU_API_KEY、MiniMax=MINIMAX_API_KEY、"
             "Claude=ANTHROPIC_API_KEY、OpenRouter=OPENROUTER_API_KEY、xAI=XAI_API_KEY。"
             "也可在 .env 里设 BACKEND_URL 代替此处。"
+        ),
+    )
+
+    st.text_input(
+        "API Key（可选，留空用 .env）",
+        key="llm_api_key",
+        type="password",
+        placeholder="留空则用环境变量 OPENAI_API_KEY / ANTHROPIC_API_KEY 等",
+        help=(
+            "经第三方网关访问时可直接填入该网关的 Key；留空则从 .env 按供应商读取。"
+            "双格式网关（Claude 与 GPT 地址不同）可在 .env 设 OPENAI_BASE_URL / "
+            "ANTHROPIC_BASE_URL，切换供应商即自动切端点。"
         ),
     )
 
