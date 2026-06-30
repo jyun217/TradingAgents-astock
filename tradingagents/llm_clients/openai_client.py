@@ -174,9 +174,11 @@ class OpenAIClient(BaseLLMClient):
             if key in self.kwargs:
                 llm_kwargs[key] = self.kwargs[key]
 
-        # Native OpenAI: use Responses API for consistent behavior across
-        # all model families. Third-party providers use Chat Completions.
-        if self.provider == "openai":
+        # Native OpenAI (official endpoint): use Responses API for consistent
+        # behavior across all model families. A custom base_url means a
+        # third-party gateway that typically only speaks /v1/chat/completions,
+        # so fall back to Chat Completions there.
+        if self.provider == "openai" and not self.base_url:
             llm_kwargs["use_responses_api"] = True
 
         # DeepSeek's thinking-mode quirks live in their own subclass so the

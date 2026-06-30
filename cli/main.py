@@ -596,6 +596,14 @@ def get_user_selections():
         )
         anthropic_effort = ask_anthropic_effort()
 
+    # Step 9: Optional API key (for custom gateways)
+    console.print(
+        create_question_box(
+            "Step 9: API Key", "Optionally provide an API key (blank = use .env)"
+        )
+    )
+    llm_api_key = ask_llm_api_key()
+
     return {
         "ticker": selected_ticker,
         "analysis_date": analysis_date,
@@ -609,6 +617,7 @@ def get_user_selections():
         "openai_reasoning_effort": reasoning_effort,
         "anthropic_effort": anthropic_effort,
         "output_language": output_language,
+        "llm_api_key": llm_api_key,
     }
 
 
@@ -953,6 +962,7 @@ def run_analysis(checkpoint: bool = False):
     config["deep_think_llm"] = selections["deep_thinker"]
     config["backend_url"] = selections["backend_url"]
     config["llm_provider"] = selections["llm_provider"].lower()
+    config["llm_api_key"] = selections.get("llm_api_key")
     # Provider-specific thinking configuration
     config["google_thinking_level"] = selections.get("google_thinking_level")
     config["openai_reasoning_effort"] = selections.get("openai_reasoning_effort")

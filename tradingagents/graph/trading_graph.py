@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 from langgraph.prebuilt import ToolNode
 
 from tradingagents.llm_clients import create_llm_client
+from tradingagents.llm_clients.endpoints import resolve_base_url
 
 from tradingagents.agents import *
 from tradingagents.default_config import DEFAULT_CONFIG
@@ -55,6 +56,32 @@ from .reflection import Reflector
 from .signal_processing import SignalProcessor
 
 
+def build_llm_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Build kwargs forwarded to create_llm_client from config.
+
+    Includes provider-specific thinking/effort settings plus an optional
+    unified api_key (forwarded to the langchain client for custom gateways).
+    """
+    kwargs: Dict[str, Any] = {}
+    provider = (config.get("llm_provider") or "").lower()
+
+    if provider == "google":
+        if config.get("google_thinking_level"):
+            kwargs["thinking_level"] = config["google_thinking_level"]
+    elif provider == "openai":
+        if config.get("openai_reasoning_effort"):
+            kwargs["reasoning_effort"] = config["openai_reasoning_effort"]
+    elif provider == "anthropic":
+        if config.get("anthropic_effort"):
+            kwargs["effort"] = config["anthropic_effort"]
+
+    api_key = config.get("llm_api_key")
+    if api_key:
+        kwargs["api_key"] = api_key
+
+    return kwargs
+
+
 class TradingAgentsGraph:
     """Main class that orchestrates the trading agents framework."""
 
@@ -85,22 +112,28 @@ class TradingAgentsGraph:
         os.makedirs(self.config["results_dir"], exist_ok=True)
 
         # Initialize LLMs with provider-specific thinking configuration
-        llm_kwargs = self._get_provider_kwargs()
+        llm_kwargs = build_llm_kwargs(self.config)
 
         # Add callbacks to kwargs if provided (passed to LLM constructor)
         if self.callbacks:
             llm_kwargs["callbacks"] = self.callbacks
 
+        # Resolve base URL once here (single source of truth across entry
+        # points): explicit config > provider env > BACKEND_URL > official.
+        base_url = resolve_base_url(
+            self.config["llm_provider"], self.config.get("backend_url")
+        )
+
         deep_client = create_llm_client(
             provider=self.config["llm_provider"],
             model=self.config["deep_think_llm"],
-            base_url=self.config.get("backend_url"),
+            base_url=base_url,
             **llm_kwargs,
         )
         quick_client = create_llm_client(
             provider=self.config["llm_provider"],
             model=self.config["quick_think_llm"],
-            base_url=self.config.get("backend_url"),
+            base_url=base_url,
             **llm_kwargs,
         )
 
@@ -137,28 +170,6 @@ class TradingAgentsGraph:
         self.workflow = self.graph_setup.setup_graph(selected_analysts)
         self.graph = self.workflow.compile()
         self._checkpointer_ctx = None
-
-    def _get_provider_kwargs(self) -> Dict[str, Any]:
-        """Get provider-specific kwargs for LLM client creation."""
-        kwargs = {}
-        provider = self.config.get("llm_provider", "").lower()
-
-        if provider == "google":
-            thinking_level = self.config.get("google_thinking_level")
-            if thinking_level:
-                kwargs["thinking_level"] = thinking_level
-
-        elif provider == "openai":
-            reasoning_effort = self.config.get("openai_reasoning_effort")
-            if reasoning_effort:
-                kwargs["reasoning_effort"] = reasoning_effort
-
-        elif provider == "anthropic":
-            effort = self.config.get("anthropic_effort")
-            if effort:
-                kwargs["effort"] = effort
-
-        return kwargs
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         """Create tool nodes for different data sources using abstract methods."""
