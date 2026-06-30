@@ -217,3 +217,8 @@ __marimo__/
 
 # Cache
 **/data_cache/
+
+# 仓库内分析数据：保留报告与记忆，但任何缓存/断点库不入 git
+analysis_data/cache/
+analysis_data/**/*.db
+analysis_data/**/*.csv
