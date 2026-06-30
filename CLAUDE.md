@@ -53,6 +53,9 @@ v0.2.5 起完全移除 akshare 依赖，所有数据通过直连 HTTP API 获取
 ### 模型兼容性
 deepseek-v4-flash 等模型在 tool call 时可能返回中文股票名而非 6 位代码。`safe_ticker_component` 已加兜底自动转码，但不同模型表现仍有差异。
 
+### 自定义 LLM 端点（v0.2.17）
+openai / anthropic 可经第三方网关接入：base_url 优先级为 显式输入(Web/CLI) > `OPENAI_BASE_URL`/`ANTHROPIC_BASE_URL` > `BACKEND_URL` > 官方，集中在 `trading_graph.py` 的 `resolve_base_url` 解析。`openai` 仅在官方直连（无 base_url）时启用 Responses API，经网关自动改走 Chat Completions。可选 `config["llm_api_key"]`（Web/CLI 输入框）覆盖环境变量 Key。
+
 ### 待处理 PR
 - PR #18（hejingchi）：start_date 功能 + 主题切换 + Windows 字体。不建议直接 merge（与 v0.2.6 冲突），start_date 功能值得后续自行实现。
 
