@@ -31,3 +31,26 @@ class TestResolveBaseUrl(unittest.TestCase):
     def test_unknown_provider_uses_backend_only(self):
         with patch.dict(os.environ, {"BACKEND_URL": "https://generic/v1"}, clear=True):
             self.assertEqual(resolve_base_url("deepseek", None), "https://generic/v1")
+
+
+from tradingagents.llm_clients.openai_client import OpenAIClient
+
+
+@pytest.mark.unit
+class TestOpenAIResponsesApiGating(unittest.TestCase):
+    @patch("tradingagents.llm_clients.openai_client.NormalizedChatOpenAI")
+    def test_custom_base_url_disables_responses_api(self, mock_chat):
+        client = OpenAIClient("gpt-5.4", base_url="https://gw.example.com/v1",
+                              provider="openai", api_key="k")
+        client.get_llm()
+        call_kwargs = mock_chat.call_args[1]
+        self.assertNotIn("use_responses_api", call_kwargs)
+        self.assertEqual(call_kwargs.get("base_url"), "https://gw.example.com/v1")
+        self.assertEqual(call_kwargs.get("api_key"), "k")
+
+    @patch("tradingagents.llm_clients.openai_client.NormalizedChatOpenAI")
+    def test_official_endpoint_keeps_responses_api(self, mock_chat):
+        client = OpenAIClient("gpt-5.4", base_url=None, provider="openai", api_key="k")
+        client.get_llm()
+        call_kwargs = mock_chat.call_args[1]
+        self.assertTrue(call_kwargs.get("use_responses_api"))
