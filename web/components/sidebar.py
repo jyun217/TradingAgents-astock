@@ -55,6 +55,15 @@ def _clear_analysis_artifacts(ticker: str, trade_date: str) -> None:
     clear_checkpoint(DEFAULT_CONFIG["data_cache_dir"], ticker, trade_date)
 
 
+def _render_history_entry(entry: dict) -> None:
+    """Render one clickable history record button ('名字（代码） · 日期')."""
+    t, d = entry["ticker"], entry["date"]
+    label = f"{stock_name_code_label(t)}  ·  {d}"
+    if st.button(label, key=f"hist_{t}_{d}", use_container_width=True):
+        st.session_state["viewing_history"] = entry["path"]
+        st.session_state["start_analysis"] = None
+
+
 def _render_analysis_controls(raw_ticker: str, trade_date_value: date) -> None:
     tracker = st.session_state.get("tracker")
     is_running = tracker is not None and tracker.is_running
@@ -316,12 +325,31 @@ def render_sidebar() -> None:
         st.caption("暂无历史记录")
         return
 
-    for entry in history[:20]:
-        t, d = entry["ticker"], entry["date"]
-        label = f"{stock_name_code_label(t)}  ·  {d}"
-        if st.button(label, key=f"hist_{t}_{d}", use_container_width=True):
-            st.session_state["viewing_history"] = entry["path"]
-            st.session_state["start_analysis"] = None
+    query = (st.text_input(
+        "搜索历史",
+        key="history_search",
+        placeholder="按代码或名字过滤，如 688234 或 天岳",
+        label_visibility="collapsed",
+    ) or "").strip().lower()
+
+    if query:
+        matched = [
+            e for e in history
+            if query in e["ticker"].lower() or query in stock_name_code_label(e["ticker"]).lower()
+        ]
+        if not matched:
+            st.caption("无匹配记录")
+        else:
+            st.caption(f"匹配 {len(matched)} 条")
+            for entry in matched:
+                _render_history_entry(entry)
+    else:
+        for entry in history[:20]:
+            _render_history_entry(entry)
+        if len(history) > 20:
+            with st.expander(f"显示全部（共 {len(history)} 条）"):
+                for entry in history[20:]:
+                    _render_history_entry(entry)
 
     st.markdown("---")
     st.caption("⚠️ 仅供学习研究，不构成投资建议")

@@ -33,17 +33,23 @@ def get_history() -> list[dict[str, str]]:
     if not root.exists():
         return []
 
-    entries: list[dict[str, str]] = []
+    # Sort by (trade date, file mtime) descending: newest dates first, and
+    # within the same date the most recently produced analysis comes first.
+    scored: list[tuple[str, float, dict[str, str]]] = []
     for log_file in root.rglob("full_states_log_*.json"):
         match = re.search(r"full_states_log_(\d{4}-\d{2}-\d{2})\.json$", log_file.name)
         if not match:
             continue
         date = match.group(1)
         ticker = log_file.parent.parent.name
-        entries.append({"ticker": ticker, "date": date, "path": str(log_file)})
+        try:
+            mtime = log_file.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        scored.append((date, mtime, {"ticker": ticker, "date": date, "path": str(log_file)}))
 
-    entries.sort(key=lambda e: e["date"], reverse=True)
-    return entries
+    scored.sort(key=lambda t: (t[0], t[1]), reverse=True)
+    return [entry for _, _, entry in scored]
 
 
 def _completed_key(ticker: str, trade_date: str) -> tuple[str, str]:

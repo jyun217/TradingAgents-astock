@@ -31,6 +31,28 @@ def test_get_history_scans_configured_dir(tmp_path, monkeypatch):
     ]
 
 
+def test_get_history_sorts_by_date_then_mtime(tmp_path, monkeypatch):
+    import os
+
+    logs = tmp_path / "logs"
+    def make(code: str, date: str, mtime: float) -> None:
+        d = logs / code / "TradingAgentsStrategy_logs"
+        d.mkdir(parents=True)
+        p = d / f"full_states_log_{date}.json"
+        p.write_text("{}", encoding="utf-8")
+        os.utime(p, (mtime, mtime))
+
+    # Same date 2026-06-30: B written later than A → B first.
+    make("000001", "2026-06-30", mtime=1000.0)
+    make("000002", "2026-06-30", mtime=2000.0)
+    # Newer date wins regardless of mtime.
+    make("000003", "2026-07-01", mtime=500.0)
+    monkeypatch.setitem(history.DEFAULT_CONFIG, "results_dir", str(logs))
+
+    order = [e["ticker"] for e in history.get_history()]
+    assert order == ["000003", "000002", "000001"]
+
+
 def test_extract_rating_reads_5_tier_from_final_decision():
     assert history.extract_rating({"final_trade_decision": "**Rating**: Underweight\n减持"}) == "Underweight"
     assert history.extract_rating({"final_trade_decision": "**Rating**: Sell"}) == "Sell"
