@@ -55,6 +55,23 @@ def _clear_analysis_artifacts(ticker: str, trade_date: str) -> None:
     clear_checkpoint(DEFAULT_CONFIG["data_cache_dir"], ticker, trade_date)
 
 
+def _is_live_entry(entry: dict, tracker) -> bool:
+    """True if this 未完成任务 entry is the analysis currently held by ``tracker``.
+
+    The live task (running OR paused — paused keeps ``is_running`` True) is
+    listed like any other incomplete task, but it must stay clickable while busy
+    so the user can return to the live progress view after browsing history —
+    without spawning a second run. Every other incomplete entry stays disabled
+    while an analysis is in progress.
+    """
+    if tracker is None or not tracker.is_running or not tracker.ticker:
+        return False
+    return (
+        entry["ticker"] == tracker.ticker.upper()
+        and entry["trade_date"] == tracker.trade_date
+    )
+
+
 def _clear_history_search() -> None:
     # Runs as an on_click callback (before widgets re-instantiate), so clearing
     # the bound key here is safe — unlike assigning to it after the text_input.
@@ -303,6 +320,7 @@ def render_sidebar() -> None:
     else:
         for entry in incomplete[:10]:
             t, d = entry["ticker"], entry["trade_date"]
+            is_live = _is_live_entry(entry, tracker)
             status_label = {
                 "error": "出错",
                 "paused": "已暂停",
@@ -310,18 +328,25 @@ def render_sidebar() -> None:
             }.get(entry.get("status"), "可继续")
             step = entry.get("checkpoint_step")
             step_label = f" · step {step}" if step is not None else ""
-            label = f"{stock_name_code_label(t)}  ·  {d}  ·  {status_label}{step_label}"
+            # The live task stays clickable while busy; its button returns to the
+            # live progress view (no restart). Other entries stay disabled.
+            prefix = "↩ 返回 · " if is_live else ""
+            label = f"{prefix}{stock_name_code_label(t)}  ·  {d}  ·  {status_label}{step_label}"
             if st.button(
                 label,
                 key=f"resume_{t}_{d}",
                 use_container_width=True,
-                disabled=is_busy,
+                disabled=is_busy and not is_live,
             ):
-                st.session_state["start_analysis"] = {
-                    "ticker": t,
-                    "trade_date": d,
-                }
-                st.session_state["viewing_history"] = None
+                if is_live:
+                    # Just switch the main view back to the running analysis.
+                    st.session_state["viewing_history"] = None
+                else:
+                    st.session_state["start_analysis"] = {
+                        "ticker": t,
+                        "trade_date": d,
+                    }
+                    st.session_state["viewing_history"] = None
 
     st.markdown("---")
     st.markdown("#### 历史记录")
